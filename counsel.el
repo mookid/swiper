@@ -2431,7 +2431,19 @@ FZF-PROMPT, if non-nil, is passed as `ivy-read' prompt argument."
 
 Files in directories with any of these names are not candidates
 for `counsel-file-jump' and `counsel-dir-jump'."
-  :type '(choice (repeat string)))
+  :type '(choice (repeat string))
+  :group 'ivy)
+
+(defcustom counsel-file-jump-find-executable
+  (if (memq system-type '(ms-dos windows-nt))
+      'dir.exe
+    'unix-find)
+  "Which executable to use to find files.
+Used for `counsel-file-jump' and `counsel-dir-jump'."
+  :type '(choice
+          (const :tag "Unix find" unix-find)
+          (const :tag "Windows default" dir.exe))
+  :group 'ivy)
 
 (defun counsel--find-dir-mask (dirs)
   (concat " -not "
@@ -2453,10 +2465,12 @@ for `counsel-file-jump' and `counsel-dir-jump'."
            " ")))
 
 (defun counsel--list-files (find-command dir-command dir)
-  (cond ((executable-find find-program)
+  (cond ((eq counsel-file-jump-find-executable 'unix-find)
+         (counsel-require-program "find")
          (split-string (shell-command-to-string find-command)
           "\n" t))
-        ((memq system-type '(ms-dos windows-nt))
+        ((eq counsel-file-jump-find-executable 'dir.exe)
+         (counsel-require-program "dir")
          (mapcar (lambda (fullpath)
                    (string-remove-prefix dir (expand-file-name fullpath)))
                  (split-string (shell-command-to-string dir-command)
